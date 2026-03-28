@@ -3,11 +3,11 @@
   "name": "Milesight Gateway",
   "codeowners": ["@corgan2222"],
   "config_flow": true,
-  "documentation": "https://github.com/corgan2222/milesight_gateway",
-  "issue_tracker": "https://github.com/corgan2222/milesight_gateway/issues",
   "dependencies": ["mqtt"],
+  "documentation": "https://github.com/corgan2222/milesight_gateway",
   "integration_type": "hub",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/corgan2222/milesight_gateway/issues",
   "quality_scale": "bronze",
   "requirements": ["Milesight-Gateway-API==0.0.1"],
   "version": "1.0.1"
