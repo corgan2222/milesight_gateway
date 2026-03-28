@@ -1,0 +1,78 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert",
+      "reconfigure_successful": "Neukonfiguration war erfolgreich"
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "step": {
+      "user": {
+        "title": "Milesight Gateway konfigurieren",
+        "description": "Geben Sie die Verbindungsdetails für Ihr Milesight Gateway ein.",
+        "data": {
+          "gateway_url": "Gateway-URL",
+          "port": "Port",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "secret_key": "Geheimschlüssel",
+          "iv": "AES-Verschlüsselungs Initialisierungsvektor (IV)",
+          "gateway_mqtt_base_topic": "MQTT-Uplink-Basistopic"
+        },
+        "data_description": {
+          "gateway_url": "Die URL Ihres Milesight Gateways, zum Beispiel `https://192.168.2.180`.",
+          "port": "Der Port der Gateway-API.",
+          "username": "Der Benutzername für die Anmeldung am Milesight Gateway.",
+          "password": "Das Passwort für die Anmeldung am Milesight Gateway.",
+          "secret_key": "Der 16-stellige AES-Verschlüsselungsschlüssel für das Gateway-Passwort.",
+          "iv": "Der 16-stellige AES-Initialisierungsvektor für das Gateway-Passwort.",
+          "gateway_mqtt_base_topic": "Das MQTT-Topic-Präfix für Sensor-Uplink-Nachrichten, zum Beispiel `sensors/lora/uplink`."
+        }
+      },
+      "reconfigure": {
+        "title": "Milesight Gateway neu konfigurieren",
+        "description": "Aktualisieren Sie die Anmeldedaten für Ihr Milesight Gateway.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort",
+          "secret_key": "Geheimschlüssel",
+          "iv": "Initialisierungsvektor (IV)",
+          "gateway_mqtt_base_topic": "MQTT-Uplink-Basistopic"
+        },
+        "data_description": {
+          "username": "Der Benutzername für die Anmeldung am Milesight Gateway.",
+          "password": "Das neue Passwort für die Anmeldung am Milesight Gateway.",
+          "secret_key": "Der 16-stellige AES-Verschlüsselungsschlüssel für das Gateway-Passwort.",
+          "iv": "Der 16-stellige AES-Initialisierungsvektor für das Gateway-Passwort.",
+          "gateway_mqtt_base_topic": "Das MQTT-Topic-Präfix für Sensor-Uplink-Nachrichten, zum Beispiel `sensors/lora/uplink`."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Milesight Gateway Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft das Gateway nach aktuellen Sensordaten abgefragt werden soll."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "humidity": {
+        "name": "Luftfeuchtigkeit"
+      }
+    }
+  }
+}
