@@ -197,7 +197,7 @@ def _load_devices_db() -> dict:
     """Load the devices_ha.json model database."""
     try:
         return json.loads(_DEVICES_DB_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+    except OSError, json.JSONDecodeError, UnicodeDecodeError:
         _LOGGER.exception("Failed to load devices_ha.json")
         return {"devices": []}
 

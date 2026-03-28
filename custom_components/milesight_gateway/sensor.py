@@ -61,7 +61,7 @@ async def _tcp_ping(host: str, port: int) -> float | None:
         elapsed = round((time.monotonic() - start) * 1000, 1)
         writer.close()
         await writer.wait_closed()
-    except (OSError, TimeoutError):
+    except OSError, TimeoutError:
         return None
     else:
         return elapsed
@@ -91,9 +91,7 @@ async def async_setup_entry(
 
     for device in coordinator.data.devices:
         entities.extend(
-            MilesightSensor(
-                coordinator, device, entity_def, gateway_url, gateway_id
-            )
+            MilesightSensor(coordinator, device, entity_def, gateway_url, gateway_id)
             for entity_def in device.entities
             if entity_def.platform == "sensor"
         )
@@ -123,6 +121,7 @@ def _device_info(
 # ---------------------------------------------------------------------------
 # Gateway diagnostic sensors
 # ---------------------------------------------------------------------------
+
 
 class MilesightOnlineDevicesSensor(
     CoordinatorEntity[MilesightGatewayCoordinator], SensorEntity
@@ -225,6 +224,7 @@ class MilesightGatewayPingSensor(
 # Per-device sensors (MQTT-driven)
 # ---------------------------------------------------------------------------
 
+
 class MilesightSensor(SensorEntity):
     """A sensor whose state is updated via MQTT."""
 
@@ -248,9 +248,7 @@ class MilesightSensor(SensorEntity):
         self._attr_native_unit_of_measurement = entity_def.unit
         self._attr_device_class = entity_def.device_class
         self._attr_state_class = (
-            SensorStateClass(entity_def.state_class)
-            if entity_def.state_class
-            else None
+            SensorStateClass(entity_def.state_class) if entity_def.state_class else None
         )
         self._attr_entity_registry_enabled_default = entity_def.enabled_by_default
 
@@ -287,7 +285,7 @@ class MilesightSensor(SensorEntity):
         _LOGGER.debug("MQTT message on %s: %s", self._data_topic, msg.payload)
         try:
             payload = json.loads(msg.payload)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning(
                 "Invalid JSON on topic %s: %s", self._data_topic, msg.payload
             )

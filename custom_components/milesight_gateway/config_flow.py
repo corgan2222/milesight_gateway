@@ -157,9 +157,7 @@ class MilesightGatewayConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_SECRET_KEY,
                         default=reauth_entry.data[CONF_SECRET_KEY],
                     ): str,
-                    vol.Required(
-                        CONF_IV, default=reauth_entry.data[CONF_IV]
-                    ): str,
+                    vol.Required(CONF_IV, default=reauth_entry.data[CONF_IV]): str,
                     vol.Required(
                         CONF_GATEWAY_MQTT_BASE_TOPIC,
                         default=reauth_entry.data.get(

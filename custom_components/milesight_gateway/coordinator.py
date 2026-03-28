@@ -80,8 +80,8 @@ class MilesightGatewayCoordinator(DataUpdateCoordinator[MilesightGatewayData]):
         try:
             if not self.api.connected:
                 await self.api.async_connect(session)
-            devices, online_count, offline_count = (
-                await self.api.async_get_devices(session)
+            devices, online_count, offline_count = await self.api.async_get_devices(
+                session
             )
         except APIAuthError as err:
             msg = f"Authentication failed: {err}"

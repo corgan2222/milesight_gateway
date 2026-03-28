@@ -115,7 +115,7 @@ class MilesightBinarySensor(BinarySensorEntity):
         """Parse incoming MQTT payload and update state."""
         try:
             payload = json.loads(msg.payload)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning(
                 "Invalid JSON on topic %s: %s", self._data_topic, msg.payload
             )
