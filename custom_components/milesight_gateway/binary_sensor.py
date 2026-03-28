@@ -45,8 +45,8 @@ async def async_setup_entry(
     coordinator = config_entry.runtime_data.coordinator
     gateway_url = config_entry.data[CONF_GATEWAY_URL]
     port = config_entry.data[CONF_PORT]
-    configuration_url = f"{gateway_url}:{port}"
-    gateway_id = configuration_url
+    gateway_id = f"{gateway_url}:{port}"
+    configuration_url = gateway_url
 
     entities = [
         MilesightBinarySensor(
