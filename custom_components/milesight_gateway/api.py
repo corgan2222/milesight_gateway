@@ -1,20 +1,24 @@
-"""Milesight Gateway API wrapper.
+"""
+Milesight Gateway API wrapper.
 
 Uses MilesightGatewayClient from the Milesight-Gateway-API package to fetch
 devices from the gateway, then combines them with the devices_ha.json model
 database to produce fully-described MilesightDevice objects ready for HA.
 """
 
+from __future__ import annotations
+
 import asyncio
-from dataclasses import dataclass, field
 import json
 import logging
 import pathlib
-from typing import Any
-
-from aiohttp import ClientSession, ClientTimeout
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from milesight_gateway_api.milesight_gateway_client import MilesightGatewayClient
+
+if TYPE_CHECKING:
+    from aiohttp import ClientSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -193,15 +197,16 @@ def _load_devices_db() -> dict:
     """Load the devices_ha.json model database."""
     try:
         return json.loads(_DEVICES_DB_PATH.read_text(encoding="utf-8"))
-    except Exception as err:
-        _LOGGER.error("Failed to load devices_ha.json: %s", err)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        _LOGGER.exception("Failed to load devices_ha.json")
         return {"devices": []}
 
 
 def _get_device_details(
     dev_eui: str, devices_db: dict, payload_name: str = ""
 ) -> dict | None:
-    """Return the best-matching device model entry for this EUI.
+    """
+    Return the best-matching device model entry for this EUI.
 
     First, all entries whose ``deveui`` prefix (first 9 chars) matches are
     collected.  If exactly one is found it is returned immediately.  When
@@ -224,9 +229,9 @@ def _get_device_details(
         return candidates[0]
 
     # Strip known firmware-variant suffixes before comparing.
-    _PAYLOAD_NAME_SUFFIXES = ("_new", "_esec")
+    _payload_name_suffixes = ("_new", "_esec")
     normalized = payload_name.lower()
-    for suffix in _PAYLOAD_NAME_SUFFIXES:
+    for suffix in _payload_name_suffixes:
         if normalized.endswith(suffix):
             normalized = normalized[: -len(suffix)]
             break
@@ -298,7 +303,7 @@ def _build_device(
 class MilesightGatewayAPI:
     """Wraps MilesightGatewayClient with HA-friendly async methods."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         gateway_url: str,
         port: str | int,
@@ -331,7 +336,7 @@ class MilesightGatewayAPI:
     async def async_get_devices(
         self, session: ClientSession
     ) -> tuple[list[MilesightDevice], int, int]:
-        """Fetch all devices and return (active_devices, online_count, offline_count)."""
+        """Fetch devices; return (active_list, online_count, offline_count)."""
         all_devices, _ = await self._client.get_all_devices(session)
 
         result: list[MilesightDevice] = []

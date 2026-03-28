@@ -1,18 +1,23 @@
-"""DataUpdateCoordinator for the Milesight Gateway integration.
+"""
+DataUpdateCoordinator for the Milesight Gateway integration.
 
 Fetches the device list from the gateway API on a slow polling interval.
 Actual sensor state updates are delivered via MQTT (push), not here.
 """
 
+from __future__ import annotations
+
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
-import logging
+from typing import TYPE_CHECKING
 
-from aiohttp import ClientSession
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_PORT, CONF_SCAN_INTERVAL, CONF_USERNAME
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    CONF_PASSWORD,
+    CONF_PORT,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -24,6 +29,11 @@ from .const import (
     CONF_SECRET_KEY,
     DEFAULT_SCAN_INTERVAL,
 )
+
+if TYPE_CHECKING:
+    from aiohttp import ClientSession
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +52,9 @@ class MilesightGatewayCoordinator(DataUpdateCoordinator[MilesightGatewayData]):
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
-        poll_interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        poll_interval = config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
 
         super().__init__(
             hass,
@@ -68,15 +80,21 @@ class MilesightGatewayCoordinator(DataUpdateCoordinator[MilesightGatewayData]):
         try:
             if not self.api.connected:
                 await self.api.async_connect(session)
-            devices, online_count, offline_count = await self.api.async_get_devices(session)
+            devices, online_count, offline_count = (
+                await self.api.async_get_devices(session)
+            )
+        except APIAuthError as err:
+            msg = f"Authentication failed: {err}"
+            raise UpdateFailed(msg) from err
+        except APIConnectionError as err:
+            msg = f"Cannot reach gateway: {err}"
+            raise UpdateFailed(msg) from err
+        except Exception as err:
+            msg = f"Unexpected error fetching devices: {err}"
+            raise UpdateFailed(msg) from err
+        else:
             return MilesightGatewayData(
                 devices=devices,
                 online_count=online_count,
                 offline_count=offline_count,
             )
-        except APIAuthError as err:
-            raise UpdateFailed(f"Authentication failed: {err}") from err
-        except APIConnectionError as err:
-            raise UpdateFailed(f"Cannot reach gateway: {err}") from err
-        except Exception as err:
-            raise UpdateFailed(f"Unexpected error fetching devices: {err}") from err

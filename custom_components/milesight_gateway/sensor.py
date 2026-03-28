@@ -1,4 +1,5 @@
-"""Sensor entities for the Milesight Gateway integration.
+"""
+Sensor entities for the Milesight Gateway integration.
 
 Entities are created from the device list provided by the coordinator.
 LoRaWAN sensor state updates are received via MQTT — no polling.
@@ -6,26 +7,37 @@ Gateway diagnostic sensors (online/offline count, ping) use the coordinator
 or poll independently.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from homeassistant.components.mqtt import async_subscribe
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import CONF_PORT, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import MilesightGatewayConfigEntry
-from .api import EntityDefinition, MilesightDevice
 from .const import CONF_GATEWAY_URL, DOMAIN
 from .coordinator import MilesightGatewayCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.components.mqtt.models import ReceiveMessage
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from . import MilesightGatewayConfigEntry
+    from .api import EntityDefinition, MilesightDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +47,8 @@ _TCP_PING_TIMEOUT = 3.0  # seconds
 
 
 async def _tcp_ping(host: str, port: int) -> float | None:
-    """Open a TCP connection to host:port and return the round-trip time in ms.
+    """
+    Open a TCP connection to host:port and return the round-trip time in ms.
 
     Returns None when the host is unreachable or the connection times out.
     """
@@ -48,13 +61,14 @@ async def _tcp_ping(host: str, port: int) -> float | None:
         elapsed = round((time.monotonic() - start) * 1000, 1)
         writer.close()
         await writer.wait_closed()
-        return elapsed
-    except (OSError, asyncio.TimeoutError):
+    except (OSError, TimeoutError):
         return None
+    else:
+        return elapsed
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     config_entry: MilesightGatewayConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -70,16 +84,22 @@ async def async_setup_entry(
     entities: list[SensorEntity] = [
         MilesightOnlineDevicesSensor(coordinator, gateway_device_info),
         MilesightOfflineDevicesSensor(coordinator, gateway_device_info),
-        MilesightGatewayPingSensor(coordinator, gateway_device_info, gateway_host, port),
+        MilesightGatewayPingSensor(
+            coordinator, gateway_device_info, gateway_host, port
+        ),
     ]
 
     for device in coordinator.data.devices:
         entities.extend(
-            MilesightSensor(coordinator, device, entity_def, gateway_url, gateway_id)
+            MilesightSensor(
+                coordinator, device, entity_def, gateway_url, gateway_id
+            )
             for entity_def in device.entities
             if entity_def.platform == "sensor"
         )
-        entities.append(MilesightLastSeenSensor(coordinator, device, gateway_url, gateway_id))
+        entities.append(
+            MilesightLastSeenSensor(coordinator, device, gateway_url, gateway_id)
+        )
 
     async_add_entities(entities)
 
@@ -161,7 +181,8 @@ class MilesightOfflineDevicesSensor(
 class MilesightGatewayPingSensor(
     CoordinatorEntity[MilesightGatewayCoordinator], SensorEntity
 ):
-    """TCP round-trip time to the gateway's API endpoint in milliseconds.
+    """
+    TCP round-trip time to the gateway's API endpoint in milliseconds.
 
     Updated every time the coordinator refreshes so the poll interval follows
     the same configured scan interval as the device list.
@@ -212,7 +233,7 @@ class MilesightSensor(SensorEntity):
 
     def __init__(
         self,
-        coordinator: MilesightGatewayCoordinator,
+        _coordinator: MilesightGatewayCoordinator,
         device: MilesightDevice,
         entity_def: EntityDefinition,
         configuration_url: str,
@@ -243,7 +264,11 @@ class MilesightSensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to the device MQTT topic when added to HA."""
-        _LOGGER.debug("Subscribing to MQTT topic: %s (key: %s)", self._data_topic, self._entity_key)
+        _LOGGER.debug(
+            "Subscribing to MQTT topic: %s (key: %s)",
+            self._data_topic,
+            self._entity_key,
+        )
         try:
             self.async_on_remove(
                 await async_subscribe(
@@ -257,22 +282,30 @@ class MilesightSensor(SensorEntity):
             raise
 
     @callback
-    def _handle_mqtt_message(self, msg) -> None:
+    def _handle_mqtt_message(self, msg: ReceiveMessage) -> None:
         """Parse incoming MQTT payload and update state."""
         _LOGGER.debug("MQTT message on %s: %s", self._data_topic, msg.payload)
         try:
             payload = json.loads(msg.payload)
         except (json.JSONDecodeError, ValueError):
-            _LOGGER.warning("Invalid JSON on topic %s: %s", self._data_topic, msg.payload)
+            _LOGGER.warning(
+                "Invalid JSON on topic %s: %s", self._data_topic, msg.payload
+            )
             return
 
         value = payload.get(self._entity_key)
         if value is None:
-            _LOGGER.debug("Key %s not found in payload for topic %s", self._entity_key, self._data_topic)
+            _LOGGER.debug(
+                "Key %s not found in payload for topic %s",
+                self._entity_key,
+                self._data_topic,
+            )
             return
 
         # Timestamp sensors require a timezone-aware datetime, not a raw string.
-        if self._attr_device_class == SensorDeviceClass.TIMESTAMP and isinstance(value, str):
+        if self._attr_device_class == SensorDeviceClass.TIMESTAMP and isinstance(
+            value, str
+        ):
             try:
                 value = datetime.fromisoformat(value)
             except ValueError:
@@ -301,7 +334,7 @@ class MilesightLastSeenSensor(SensorEntity):
 
     def __init__(
         self,
-        coordinator: MilesightGatewayCoordinator,
+        _coordinator: MilesightGatewayCoordinator,
         device: MilesightDevice,
         configuration_url: str,
         gateway_id: str,
@@ -322,7 +355,7 @@ class MilesightLastSeenSensor(SensorEntity):
         )
 
     @callback
-    def _handle_mqtt_message(self, msg) -> None:
+    def _handle_mqtt_message(self, _msg: ReceiveMessage) -> None:
         """Update the last-seen timestamp on every incoming message."""
-        self._attr_native_value = datetime.now(timezone.utc)
+        self._attr_native_value = datetime.now(UTC)
         self.async_write_ha_state()

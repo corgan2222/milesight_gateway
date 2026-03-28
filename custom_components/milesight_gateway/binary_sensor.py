@@ -1,11 +1,15 @@
-"""Binary sensor entities for the Milesight Gateway integration.
+"""
+Binary sensor entities for the Milesight Gateway integration.
 
 Entities are created from the device list provided by the coordinator.
 State updates are received via MQTT — no polling.
 """
 
+from __future__ import annotations
+
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.mqtt import async_subscribe
@@ -13,35 +17,41 @@ from homeassistant.const import CONF_PORT
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import MilesightGatewayConfigEntry
-from .api import EntityDefinition, MilesightDevice
 from .const import CONF_GATEWAY_URL, DOMAIN
-from .coordinator import MilesightGatewayCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.components.mqtt.models import ReceiveMessage
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from . import MilesightGatewayConfigEntry
+    from .api import EntityDefinition, MilesightDevice
+    from .coordinator import MilesightGatewayCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
 
 # Values that map to True (active/on) for binary sensors
-_TRUTHY_VALUES = {True, 1, "true", "1", "on", "open", "motion", "occupied"}
+_TRUTHY_VALUES = {True, "true", "1", "on", "open", "motion", "occupied"}
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     config_entry: MilesightGatewayConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create binary sensor entities for all binary_sensor-platform entities on every device."""
-    coordinator: MilesightGatewayCoordinator = config_entry.runtime_data.coordinator
+    """Create binary sensor entities for all binary_sensor-platform entities."""
+    coordinator = config_entry.runtime_data.coordinator
     gateway_url = config_entry.data[CONF_GATEWAY_URL]
     port = config_entry.data[CONF_PORT]
     configuration_url = f"{gateway_url}:{port}"
     gateway_id = configuration_url
 
     entities = [
-        MilesightBinarySensor(coordinator, device, entity_def, configuration_url, gateway_id)
+        MilesightBinarySensor(
+            coordinator, device, entity_def, configuration_url, gateway_id
+        )
         for device in coordinator.data.devices
         for entity_def in device.entities
         if entity_def.platform == "binary_sensor"
@@ -58,13 +68,13 @@ class MilesightBinarySensor(BinarySensorEntity):
 
     def __init__(
         self,
-        coordinator: MilesightGatewayCoordinator,
+        _coordinator: MilesightGatewayCoordinator,
         device: MilesightDevice,
         entity_def: EntityDefinition,
         configuration_url: str,
         gateway_id: str,
     ) -> None:
-        """Initialize the binary sensor from the entity definition provided by the API."""
+        """Initialize the binary sensor from the entity definition."""
         self._data_topic = device.data_topic
         self._entity_key = entity_def.key
 
@@ -101,17 +111,19 @@ class MilesightBinarySensor(BinarySensorEntity):
         )
 
     @callback
-    def _handle_mqtt_message(self, msg) -> None:
+    def _handle_mqtt_message(self, msg: ReceiveMessage) -> None:
         """Parse incoming MQTT payload and update state."""
         try:
             payload = json.loads(msg.payload)
         except (json.JSONDecodeError, ValueError):
-            _LOGGER.warning("Invalid JSON on topic %s: %s", self._data_topic, msg.payload)
+            _LOGGER.warning(
+                "Invalid JSON on topic %s: %s", self._data_topic, msg.payload
+            )
             return
 
         value = payload.get(self._entity_key)
         if value is None:
             return
 
-        self._attr_is_on = str(value).lower() in _TRUTHY_VALUES or value is True or value == 1
+        self._attr_is_on = str(value).lower() in _TRUTHY_VALUES
         self.async_write_ha_state()

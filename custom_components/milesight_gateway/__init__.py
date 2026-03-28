@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PORT, Platform
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import DeviceEntry
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import CONF_GATEWAY_URL, DOMAIN
 from .coordinator import MilesightGatewayCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceEntry
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +44,8 @@ async def async_setup_entry(
     if not coordinator.api.connected:
         raise ConfigEntryNotReady
 
-    # Register the gateway itself as a device so sensor devices can link to it via via_device.
+    # Register the gateway as a device so sensor devices can link to it
+    # via via_device.
     gateway_url = entry.data[CONF_GATEWAY_URL]
     port = entry.data[CONF_PORT]
     gateway_id = f"{gateway_url}:{port}"
@@ -72,7 +76,9 @@ async def _async_update_listener(
 
 
 async def async_remove_config_entry_device(
-    hass: HomeAssistant, config_entry: MilesightGatewayConfigEntry, device_entry: DeviceEntry
+    _hass: HomeAssistant,
+    _config_entry: MilesightGatewayConfigEntry,
+    _device_entry: DeviceEntry,
 ) -> bool:
     """Allow a device to be removed from the UI."""
     return True

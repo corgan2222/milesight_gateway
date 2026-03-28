@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
-from homeassistant.const import CONF_PASSWORD, CONF_PORT, CONF_SCAN_INTERVAL, CONF_USERNAME
+from homeassistant.const import (
+    CONF_PASSWORD,
+    CONF_PORT,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
 
 from .api import APIAuthError, APIConnectionError, MilesightGatewayAPI
 from .const import (
@@ -39,7 +45,9 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): str,
         vol.Required(CONF_SECRET_KEY, default=DEFAULT_SECRET_KEY): str,
         vol.Required(CONF_IV, default=DEFAULT_IV): str,
-        vol.Required(CONF_GATEWAY_MQTT_BASE_TOPIC, default=DEFAULT_GATEWAY_MQTT_BASE_TOPIC): str,
+        vol.Required(
+            CONF_GATEWAY_MQTT_BASE_TOPIC, default=DEFAULT_GATEWAY_MQTT_BASE_TOPIC
+        ): str,
     }
 )
 
@@ -59,9 +67,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         session = async_get_clientsession(hass)
         await api.async_connect(session)
     except APIAuthError as err:
-        raise InvalidAuth from err
+        raise InvalidAuthError from err
     except APIConnectionError as err:
-        raise CannotConnect from err
+        raise CannotConnectError from err
 
     return {"title": data[CONF_GATEWAY_URL]}
 
@@ -74,7 +82,9 @@ class MilesightGatewayConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(_config_entry) -> MilesightGatewayOptionsFlow:
+    def async_get_options_flow(
+        _config_entry: ConfigEntry,
+    ) -> MilesightGatewayOptionsFlow:
         """Return the options flow handler."""
         return MilesightGatewayOptionsFlow()
 
@@ -87,9 +97,9 @@ class MilesightGatewayConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
-            except CannotConnect:
+            except CannotConnectError:
                 errors["base"] = "cannot_connect"
-            except InvalidAuth:
+            except InvalidAuthError:
                 errors["base"] = "invalid_auth"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
@@ -120,9 +130,9 @@ class MilesightGatewayConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_PORT: reauth_entry.data[CONF_PORT],
                 }
                 await validate_input(self.hass, full_data)
-            except CannotConnect:
+            except CannotConnectError:
                 errors["base"] = "cannot_connect"
-            except InvalidAuth:
+            except InvalidAuthError:
                 errors["base"] = "invalid_auth"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
@@ -139,14 +149,22 @@ class MilesightGatewayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=reauth_entry.data[CONF_USERNAME]): str,
+                    vol.Required(
+                        CONF_USERNAME, default=reauth_entry.data[CONF_USERNAME]
+                    ): str,
                     vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_SECRET_KEY, default=reauth_entry.data[CONF_SECRET_KEY]): str,
-                    vol.Required(CONF_IV, default=reauth_entry.data[CONF_IV]): str,
+                    vol.Required(
+                        CONF_SECRET_KEY,
+                        default=reauth_entry.data[CONF_SECRET_KEY],
+                    ): str,
+                    vol.Required(
+                        CONF_IV, default=reauth_entry.data[CONF_IV]
+                    ): str,
                     vol.Required(
                         CONF_GATEWAY_MQTT_BASE_TOPIC,
                         default=reauth_entry.data.get(
-                            CONF_GATEWAY_MQTT_BASE_TOPIC, DEFAULT_GATEWAY_MQTT_BASE_TOPIC
+                            CONF_GATEWAY_MQTT_BASE_TOPIC,
+                            DEFAULT_GATEWAY_MQTT_BASE_TOPIC,
                         ),
                     ): str,
                 }
@@ -180,9 +198,9 @@ class MilesightGatewayOptionsFlow(OptionsFlow):
         )
 
 
-class CannotConnect(HomeAssistantError):
+class CannotConnectError(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
 
-class InvalidAuth(HomeAssistantError):
+class InvalidAuthError(HomeAssistantError):
     """Error to indicate there is invalid auth."""
