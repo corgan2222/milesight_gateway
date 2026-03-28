@@ -233,6 +233,13 @@ The enriched payload enables all diagnostic entities (RSSI, SNR, Last Seen, devi
 
 ---
 
+## Roadmap / ToDo
+
+- **Auto-discover MQTT topic** — read the uplink topic directly from the gateway API instead of requiring manual configuration
+- **Downlink / device control** — send configuration commands to devices via MQTT downlink, using the [Milesight remote control API](https://support.milesight-iot.com/support/solutions/articles/73000514114-how-to-remotely-control-devices-via-mqtt-on-milesight-gateway). This would allow adjusting sensor settings (reporting interval, thresholds, etc.) directly from Home Assistant.
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
